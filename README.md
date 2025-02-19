@@ -301,3 +301,78 @@
 </body>
 
 </html>
+const express = require('express');
+const { Sequelize, DataTypes } = require('sequelize');
+const app = express();
+app.use(express.json());
+
+// 数据库配置
+const sequelize = new Sequelize('starstruck_db', 'your_username', 'your_password', {
+    host: 'localhost',
+    dialect: 'mysql'
+});
+
+// 商品模型
+const Product = sequelize.define('Product', {
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    price: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
+    image: {
+        type: DataTypes.STRING
+    },
+    season: {
+        type: DataTypes.STRING,
+        allowNull: false
+    }
+});
+
+// 获取指定季节的商品列表
+app.get('/products/:season', async (req, res) => {
+    try {
+        const products = await Product.findAll({ where: { season: req.params.season } });
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching products', error: error.message });
+    }
+});
+
+// 添加商品
+app.post('/products', async (req, res) => {
+    try {
+        const newProduct = await Product.create(req.body);
+        res.json({ message: 'Product added successfully', product: newProduct });
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding product', error: error.message });
+    }
+});
+
+// 更新商品信息
+app.put('/products/:id', async (req, res) => {
+    try {
+        const product = await Product.findByPk(req.params.id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        await product.update(req.body);
+        res.json({ message: 'Product updated successfully', product });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating product', error: error.message });
+    }
+});
+
+const PORT = process.env.PORT || 3001;
+
+sequelize.sync()
+   .then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+   .catch(error => {
+        console.error('Error syncing database:', error);
+    });
